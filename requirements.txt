@@ -6,6 +6,7 @@ _openmp_mutex=4.5=1_gnu
 ca-certificates=2021.10.26=h06a4308_2
 certifi=2021.5.30=py36h5fab9bb_0
 colorama=0.4.4=pyh9f0ad1d_0
+cvxopt=1.2.7=py36hbc9fb32_0
 dsdp=5.8=hd9d9efa_1203
 fftw=3.3.10=nompi_h74d3f13_101
 glpk=4.65=h9202a9a_1004
@@ -29,6 +30,7 @@ llvmlite=0.34.0=py36hfa65bc7_2
 metis=5.1.0=h58526e2_1006
 mpfr=4.1.0=h9202a9a_1
 ncurses=6.2=h58526e2_4
+nonlinshrink=0.7=pypi_0
 numba=0.51.2=py36h7c3b610_0
 numpy=1.19.5=py36hfc0c790_2
 openssl=1.1.1l=h7f98852_0
