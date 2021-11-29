@@ -6,7 +6,7 @@
 - `spo/`: package implementing the algorithm.
 - `requirements.txt`: package requirements for experiments.
 - `experiment/`: scripts to run all experiments in the paper.
-- `data/`: preprocessed data obtained from Wharton CRSP historical stock return database. After putting the raw data input `data/raw/`, run the script `data/preprocess.py` to preprocess the raw data.
+- `data/`: preprocessed data obtained from Wharton CRSP historical stock return database. After putting the raw data to `data/raw/`, one can run the script `data/preprocess.py` to preprocess the raw data.
 - `plotting.py`: a script to reproduce all the figures.
 
 # Requirements
