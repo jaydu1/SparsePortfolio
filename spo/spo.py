@@ -6,7 +6,7 @@ import numba as nb
 from tqdm import tqdm
 
 from .objective import Objective
-from .utils import soft_thresholding, epsilon_norm, build_lambdas
+from .utils import soft_thresholding, build_lambdas
 from .utils import np_type_f, np_type_i, nb_type_f, nb_type_i, FUNC_LOG, FUNC_EXP
 
 
