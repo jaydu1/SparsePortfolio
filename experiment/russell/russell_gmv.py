@@ -1,26 +1,39 @@
 import pandas as pd
 import numpy as np
 import time 
+import sys
+import os
 
-df_close = pd.read_csv('data/russell/PRC_russell.csv', index_col=[0])
-df_open = pd.read_csv('data/russell/OPENPRC_russell.csv', index_col=[0])
+sys.path.append("./")
+path_data = './data/russell/'
+path_result = 'result/'
+os.makedirs(path_result, exist_ok=True)
+
+k = int(sys.argv[1])
+method_list = ['GMV-P', 'GMV-LS', 'GMV-NLS']
+method = method_list[k]
+
+df_close = pd.read_csv(path_data+'russell2000_PRC.csv', index_col=[0])
+df_open = pd.read_csv(path_data+'russell2000_OPENPRC.csv', index_col=[0])
 df = df_close/df_open
-
 T, d = df.shape
 
 id_begin = np.where(df.index>=20050101)[0][0]
-df_hold = pd.read_csv('data/russell/RET_russell.csv', index_col=[0]) + 1
+df_hold = pd.read_csv(path_data+'russell2000_RET.csv', index_col=[0]) + 1
+df_listed = pd.read_csv(path_data+'russell2000_listed.csv', index_col=[0])
 
 id_recal = []
 id_train_begin = []
 id_codes_list = []
 id_test_end = []
 for year in range(2005,2021):
-    for month in [1,7]:#range(1,13):
+    for month in [1,7]:
         date = int('%d%02d01'%(year,month))        
         date_train = int('%d%02d01'%(year-1,month))
-        codes = np.array(df.columns)
-
+        codes = df_listed.columns[
+            (np.all(df_listed[
+                (df_listed.index>=int('%d%02d01'%(year-int(month==1),(month+6)%12)))&
+                (df_listed.index<=date)]==1, axis=0))]
         _df = df[codes].iloc[(df.index>=date_train)&(df.index<date)].copy()
         codes = codes[
             ~np.any(np.isnan(_df), axis=0)
@@ -129,20 +142,17 @@ def fit(i, df, df_hold, method):
     return score_test, ws_test, time_elapsed
 
 
-
-method_list = ['GMV-P', 'GMV-LS', 'GMV-NLS']
-
 from joblib import Parallel, delayed
 with Parallel(n_jobs=-1, verbose=100) as parallel:
-    for i in range(3):
-        method = method_list[i]
-        print(method)
+    # for i in range(3):
+    #     method = method_list[i]
+    print(method)
 
-        out = parallel(delayed(fit)(i, df, df_hold, method) for i in range(len(id_recal)))        
-        score_test_list, ws_test_list, time_elapsed = zip(*out)
-        score_test_list = np.concatenate(score_test_list, axis=0)
-        ws_test_list = np.concatenate(ws_test_list, axis=0)
-        time_elapsed = np.array(time_elapsed)
+    out = parallel(delayed(fit)(i, df, df_hold, method) for i in range(len(id_recal)))        
+    score_test_list, ws_test_list, time_elapsed = zip(*out)
+    score_test_list = np.concatenate(score_test_list, axis=0)
+    ws_test_list = np.concatenate(ws_test_list, axis=0)
+    time_elapsed = np.array(time_elapsed)
 
-        np.savez('result/res_russell_%s.npz'%(method), 
-                score_test_list=score_test_list, ws_test_list=ws_test_list, test_date=test_date, times=time_elapsed)
+    np.savez(path_result+'res_russell_%s.npz'%(method), 
+            score_test_list=score_test_list, ws_test_list=ws_test_list, test_date=test_date, times=time_elapsed)

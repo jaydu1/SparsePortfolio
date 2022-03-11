@@ -4,8 +4,10 @@ from spo import spo_l1_path, spo_nw_min
 import sys
 import os
 import time
+import sys
+sys.path.append("./")
 
-df = pd.read_csv('data/NYSE/NYSE_3680.csv', index_col=[0])
+df = pd.read_csv('data/nyse/NYSE_3680.csv', index_col=[0])
 X = df.values
 X = X / np.max(np.abs(X))
 X = X + 1.

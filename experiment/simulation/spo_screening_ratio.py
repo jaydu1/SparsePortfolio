@@ -6,6 +6,8 @@ from numpy import linalg as LA
 import numba as nb
 from tqdm import tqdm
 import time 
+import sys
+sys.path.append("./")
 
 from spo.utils import np_type_f, np_type_i, nb_type_f, nb_type_i, FUNC_LOG, FUNC_EXP
 from spo.objective import Objective
@@ -178,7 +180,7 @@ def spo_l1_path(X, func: int = 0, a: float = 1.0,
     return ws, lambdas, gaps, n_iters, n_active_features, times
 
 
-df = pd.read_csv('data/NYSE/NYSE.csv', index_col=[0])
+df = pd.read_csv('data/nyse/NYSE.csv', index_col=[0])
 X = df.values
 X = X/np.max(np.abs(X))
 X += 1

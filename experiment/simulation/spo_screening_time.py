@@ -3,9 +3,10 @@ from typing import Optional
 import pandas as pd
 import numpy as np
 import time
+import sys
+sys.path.append("./")
 
-
-df = pd.read_csv('data/NYSE/NYSE.csv', index_col=[0])
+df = pd.read_csv('data/nyse/NYSE.csv', index_col=[0])
 X = df.values
 X = X/np.max(np.abs(X))
 X += 1

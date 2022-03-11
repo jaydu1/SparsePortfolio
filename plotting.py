@@ -21,41 +21,45 @@ palette = sns.color_palette('deep')
 
 # # Data Inspection
 
-# In[3]:
-
-
-df_close = pd.read_csv('data/sp500/PRC.csv', index_col=[0])
-df_open = pd.read_csv('data/sp500/OPENPRC.csv', index_col=[0])
-df = df_close/df_open
-
+n_days_train = 120
 n_days_hold = 63
-df_hold = pd.read_csv('data/sp500/RET.csv', index_col=[0]) + 1
-id_begin = np.where(df.index>=20110101)[0][0]
-id_recal = np.arange(id_begin, len(df.index), n_days_hold)
-df_hold.iloc[id_recal,:] = df.iloc[id_recal,:].copy()
-n_recal = len(id_recal)
 
-df_sp500 = df_hold.copy()
-
-df_close = pd.read_csv('data/russell/PRC_russell.csv', index_col=[0])
-df_open = pd.read_csv('data/russell/OPENPRC_russell.csv', index_col=[0])
+df_close = pd.read_csv('data/sp/sp500_PRC.csv', index_col=[0])
+df_open = pd.read_csv('data/sp/sp500_OPENPRC.csv', index_col=[0])
 df = df_close/df_open
 
 T, d = df.shape
 
+id_begin = np.where(df.index>=20110101)[0][0]
+df_hold = pd.read_csv('data/sp/sp500_RET.csv', index_col=[0]) + 1
+id_recal = np.arange(id_begin, len(df.index), n_days_hold)
+df_hold.iloc[id_recal,:] = df.iloc[id_recal,:].copy()
+df_sp500 = df_hold.copy()
+
+
+path_data = './data/russell/'
+
+df_close = pd.read_csv(path_data+'russell2000_PRC.csv', index_col=[0])
+df_open = pd.read_csv(path_data+'russell2000_OPENPRC.csv', index_col=[0])
+df = df_close/df_open
+T, d = df.shape
+
 id_begin = np.where(df.index>=20050101)[0][0]
-df_hold = pd.read_csv('data/russell/RET_russell.csv', index_col=[0]) + 1
+df_hold = pd.read_csv(path_data+'russell2000_RET.csv', index_col=[0]) + 1
+df_listed = pd.read_csv(path_data+'russell2000_listed.csv', index_col=[0])
 
 id_recal = []
 id_train_begin = []
 id_codes_list = []
 id_test_end = []
 for year in range(2005,2021):
-    for month in [1,7]:#range(1,13):
+    for month in [1,7]:
         date = int('%d%02d01'%(year,month))        
         date_train = int('%d%02d01'%(year-1,month))
-        codes = np.array(df.columns)
-
+        codes = df_listed.columns[
+            (np.all(df_listed[
+                (df_listed.index>=int('%d%02d01'%(year-int(month==1),(month+6)%12)))&
+                (df_listed.index<=date)]==1, axis=0))]
         _df = df[codes].iloc[(df.index>=date_train)&(df.index<date)].copy()
         codes = codes[
             ~np.any(np.isnan(_df), axis=0)
@@ -69,20 +73,13 @@ for year in range(2005,2021):
         
 
 n_recal = len(id_recal)
-
-df = df.fillna(1.)
 df_hold.iloc[id_recal,:] = df.iloc[id_recal,:].copy()
-df_hold = df_hold.fillna(1.)
-test_date = np.array(df.index[id_begin:id_test_end[-1]+1])
-
-
 df_russell2000 = df_hold.copy()
+
 
 corr_sp500 = df_sp500.corr(method='pearson')
 corr_russell2000 = df_russell2000.corr(method='pearson')
 
-
-# In[4]:
 
 
 fig, axes = plt.subplots(1, 2, figsize=(23,10))
@@ -112,9 +109,6 @@ plt.savefig('img/cor.png', dpi=1200, bbox_inches='tight', pad_inches=0)
 plt.show()
 
 
-# In[5]:
-
-
 style = 'seaborn'
 palette = sns.color_palette('deep')
 plt.style.use(style)
@@ -126,23 +120,22 @@ _df['Data'] = 'S&P 500'
 _df2 = pd.DataFrame(df_russell2000.std())
 _df2['Data'] = 'Russell 2000'
 
-df_std = pd.concat([_df,_df2])
+df_std = pd.concat([_df,_df2]).reset_index(drop=True)
 df_std.columns = ['Standard Deviation', 'Data']
 
 fig, ax = plt.subplots(1, 1, figsize=(23,10))
-sns.histplot(df_std, stat='density', kde=True, ax=ax, 
+sns.histplot(df_std, stat='proportion', kde=False, ax=ax, 
              x='Standard Deviation', hue='Data', common_norm=False)
-
+ax.set_ylabel('Empirical Proportion')
 ax.patch.set_alpha(0.5)
 # ax.set_xlabel('(c)')
+ax.set_xlim([-0.0, 0.3])
 
 plt.savefig('img/std.png', dpi=1200, bbox_inches='tight', pad_inches=0)
 sns.set(font_scale = 1)
 
 
 # # Single Crossing
-
-# In[9]:
 
 
 import scipy.stats as ss
@@ -186,11 +179,7 @@ plt.savefig('img/single_crossing.png', dpi=1200, bbox_inches='tight', pad_inches
 
 # # NYSE
 
-# In[10]:
-
-
-
-df = pd.read_csv('data/NYSE/NYSE_3680.csv', index_col=[0])
+df = pd.read_csv('data/nyse/NYSE.csv', index_col=[0])
 X = df.values
 n, d = X.shape
 X += 1.
@@ -273,9 +262,6 @@ ax1.patch.set_alpha(0.5)
 plt.savefig('img/simulation_frontier.png', dpi=1200, bbox_inches='tight', pad_inches=0)
 
 
-# In[11]:
-
-
 plt.style.use('default')
 
 a = 1.
@@ -327,7 +313,6 @@ cbar.ax.tick_params(labelsize=18)
 plt.savefig('img/simulation_screen_ratio.png', dpi=1200, bbox_inches='tight', pad_inches=0)
 
 
-# In[17]:
 
 
 plt.style.use(style)
@@ -406,9 +391,6 @@ plt.savefig('img/simulation_screen_time.png', dpi=1200, bbox_inches='tight', pad
 
 
 # # SP500
-
-# In[8]:
-
 
 import empyrical as ep
 import matplotlib
@@ -513,24 +495,46 @@ def plot_monthly_returns_heatmap(returns, ax=None, **kwargs):
     return ax
 
 
-# In[10]:
+n_days_train = 120
+n_days_hold = 63
 
-
-df_close = pd.read_csv('data/sp500/PRC.csv', index_col=[0])
-df_open = pd.read_csv('data/sp500/OPENPRC.csv', index_col=[0])
+df_close = pd.read_csv('data/sp/sp500_PRC.csv', index_col=[0])
+df_open = pd.read_csv('data/sp/sp500_OPENPRC.csv', index_col=[0])
 df = df_close/df_open
 
-n_days_hold = 63
-df_hold = pd.read_csv('data/sp500/RET.csv', index_col=[0]) + 1
+T, d = df.shape
+
 id_begin = np.where(df.index>=20110101)[0][0]
+df_hold = pd.read_csv('data/sp/sp500_RET.csv', index_col=[0]) + 1
 id_recal = np.arange(id_begin, len(df.index), n_days_hold)
 df_hold.iloc[id_recal,:] = df.iloc[id_recal,:].copy()
+df_hold = df_hold.fillna(1.)
 n_recal = len(id_recal)
+
+test_date = np.array(df.index[id_begin:])
+
+df_listed = pd.read_csv('data/sp/sp500_listed.csv', index_col=[0])
+df_listed.index = np.array(pd.to_datetime(df_listed.index).strftime('%Y%m%d')).astype(int)
+id_codes_list = []
+
+id_train_begin = []
+id_test_end = []
+for idx in id_recal:
+    codes = np.array(
+        df_listed.columns[
+        (np.all(df_listed[
+            (df_listed.index>=df.index[idx-n_days_hold*4])&
+            (df_listed.index<=df.index[idx])]==1, axis=0))])
+    codes = codes[~df.iloc[idx-n_days_train:idx,:].loc[:,codes].isnull().any()]
+
+    id_codes_list.append(
+        np.sort([np.where(np.array(list(df.columns))==i)[0][0] for i in codes])
+        )
+    id_train_begin.append(np.where(df.index==df.iloc[idx-n_days_train:idx,:].index[0])[0][-1])
+    id_test_end.append(np.where(df.index==df.iloc[idx:idx+n_days_hold,:].index[-1])[0][-1])
 
 df_rf = pd.read_csv('data/rf.csv')
 
-n_days_train =120
-n_days_hold = 63
 
 returns_list = []
 positions_list = []
@@ -545,7 +549,7 @@ def get_r_p(score_test_list, ws_test_list):
     positions['cash'] = 0.
     return returns, positions
 
-data = np.load('result/res_%s_%d_%d.npz'%('MV-NLS',n_days_train,n_days_hold))
+data = np.load('result/res_sp_%s.npz'%('MV-NLS'))
 score_test_list, ws_test_list, test_date = data['score_test_list'], data['ws_test_list'], data['test_date']
 
 returns, positions = get_r_p(score_test_list, ws_test_list)
@@ -554,7 +558,7 @@ positions_list = [positions]
 
 a = 1.
 for method in ['LOG', 'EXP']:
-    data = np.load('result/res_%s_%d_%d_%.2f.npz'%(method,n_days_train,n_days_hold,a))
+    data = np.load('result/res_sp_%s_%.2f.npz'%(method,a))
     score_test_list, ws_test_list, test_date, lambdas = data['score_test_list'], data['ws_test_list'], data['test_date'], data['lambdas']
     returns, positions = get_r_p(score_test_list, ws_test_list)
     returns_list.append(returns)
@@ -598,7 +602,42 @@ axes[0].text(-3.0, 5.0, "Monthly Returns", size=16, rotation=90.,
 plt.savefig('img/sp500_returns_2.png', dpi=1200, bbox_inches='tight', pad_inches=0)
 
 
-# In[17]:
+
+plt.style.use(style)
+plt.tight_layout()
+fig, axes = plt.subplots(1,3, figsize=(12,3), sharey=True)
+methods = ['MV-NLS', 'LOG', "EXP-1.00"]
+for j,returns in enumerate(returns_list):
+    
+    ax = plot_annual_returns(returns, ax=axes[j])
+    ax.set_xlabel('')
+    ax.set_title(methods[j], fontsize=16)
+    ax.get_legend().remove()
+    ax.set_xlim(0,100)
+
+fig.subplots_adjust(left=0.1)  
+axes[0].text(-25.0, 5.0, "Annual Returns", size=16, rotation=90.,
+         ha="center", va="center", weight='bold'
+         )    
+axes[0].patch.set_alpha(0.5)
+axes[1].patch.set_alpha(0.5)
+axes[2].patch.set_alpha(0.5)
+plt.savefig('img/sp500_returns_1.png', dpi=1200, bbox_inches='tight', pad_inches=0)
+
+plt.tight_layout()
+fig, axes = plt.subplots(1,3, figsize=(12,3), sharey=True)
+methods = ['MV-NLS', 'LOG', "EXP-1.00"]
+for j,returns in enumerate(returns_list):
+    ax = plot_monthly_returns_heatmap(returns, ax=axes[j])
+    ax.set_title('', fontsize=20)
+    if j>0:
+        ax.set_ylabel('')
+fig.subplots_adjust(left=0.1, right=0.95)      
+axes[0].text(-3.0, 5.0, "Monthly Returns", size=16, rotation=90.,
+         ha="center", va="center", weight='bold'
+         )   
+plt.savefig('img/sp500_returns_2.png', dpi=1200, bbox_inches='tight', pad_inches=0)
+
 
 
 import matplotlib.pyplot as plt
@@ -609,7 +648,7 @@ n_days_hold = 63
 plt.style.use(style)
 fig, axes = plt.subplots(2,2, figsize=(15,7), sharex=True)
 n_ws = np.arange(1,51)
-top_n = 25
+top_n = 40
 ls = ['-','--','-.',':', '--']
 colors = sns.color_palette("Set2")
 icolor = 0
@@ -627,16 +666,17 @@ for i,method in enumerate(['LOG', 'EXP']):
             label = method
         else:
             label = method + ' %.2f'%a
-        data = np.load('result/n/res_%s_%d_%d_%.2f_n.npz'%(method,n_days_train,n_days_hold,a))
+        data = np.load('result/res_sp_%s_%.2f_n.npz'%(method,a))
         score_test_list, ws_test_list, test_date, n_ws = data['score_test_list'], data['ws_test_list'], data['test_date'], data['n_ws']
-    
+        ret = score_test_list #- rf
+                
         cum_ret = np.nancumprod(score_test_list+1,axis=0)
         returns = cum_ret[-1, :] - 1
         risks = np.nanstd(score_test_list, axis=0)
 
         rf = df_rf.loc[df_rf['date'].isin(test_date), 'rf'].values.reshape((-1,1))
 
-        max_drawdown = np.max((np.maximum.accumulate(cum_ret, axis=0) - cum_ret)/cum_ret, axis=0)
+        max_drawdown = np.max((np.maximum.accumulate(cum_ret, axis=0) - cum_ret)/np.maximum.accumulate(cum_ret, axis=0), axis=0)
         
         sharpe_ratio = np.nanmean(np.log(1+score_test_list) - np.log(1+rf), axis=0)/np.nanstd(np.log(1+score_test_list), axis=0)
 
@@ -676,30 +716,32 @@ for i in range(2):
 plt.savefig('img/sp500_n.png', dpi=1200, bbox_inches='tight', pad_inches=0)
 
 
+
+
 # # Russell 2000
+path_data = './data/russell/'
 
-# In[18]:
-
-
-df_close = pd.read_csv('data/russell/PRC_russell.csv', index_col=[0])
-df_open = pd.read_csv('data/russell/OPENPRC_russell.csv', index_col=[0])
+df_close = pd.read_csv(path_data+'russell2000_PRC.csv', index_col=[0])
+df_open = pd.read_csv(path_data+'russell2000_OPENPRC.csv', index_col=[0])
 df = df_close/df_open
-
 T, d = df.shape
 
 id_begin = np.where(df.index>=20050101)[0][0]
-df_hold = pd.read_csv('data/russell/RET_russell.csv', index_col=[0]) + 1
+df_hold = pd.read_csv(path_data+'russell2000_RET.csv', index_col=[0]) + 1
+df_listed = pd.read_csv(path_data+'russell2000_listed.csv', index_col=[0])
 
 id_recal = []
 id_train_begin = []
 id_codes_list = []
 id_test_end = []
 for year in range(2005,2021):
-    for month in [1,7]:#range(1,13):
+    for month in [1,7]:
         date = int('%d%02d01'%(year,month))        
         date_train = int('%d%02d01'%(year-1,month))
-        codes = np.array(df.columns)
-
+        codes = df_listed.columns[
+            (np.all(df_listed[
+                (df_listed.index>=int('%d%02d01'%(year-int(month==1),(month+6)%12)))&
+                (df_listed.index<=date)]==1, axis=0))]
         _df = df[codes].iloc[(df.index>=date_train)&(df.index<date)].copy()
         codes = codes[
             ~np.any(np.isnan(_df), axis=0)
@@ -718,9 +760,7 @@ df = df.fillna(1.)
 df_hold.iloc[id_recal,:] = df.iloc[id_recal,:].copy()
 df_hold = df_hold.fillna(1.)
 test_date = np.array(df.index[id_begin:id_test_end[-1]+1])
-
 df_rf = pd.read_csv('data/rf.csv')
-
 
 plt.style.use(style)
 fig, axes = plt.subplots(2,2, figsize=(15,7), sharex=True)
@@ -767,7 +807,7 @@ for i,method in enumerate(['LOG', 'EXP']):
 
         rf = df_rf.loc[df_rf['date'].isin(test_date), 'rf'].values.reshape((-1,1))
 
-        max_drawdown = np.max((np.maximum.accumulate(cum_ret, axis=0) - cum_ret)/cum_ret, axis=0)
+        max_drawdown = np.max((np.maximum.accumulate(cum_ret, axis=0) - cum_ret)/np.maximum.accumulate(cum_ret, axis=0), axis=0)
         
         sharpe_ratio = np.nanmean(np.log(1+score_test_list) - np.log(1+rf), axis=0)/np.nanstd(np.log(1+score_test_list), axis=0)
         

@@ -3,40 +3,52 @@ import numpy as np
 from sklearn.model_selection import TimeSeriesSplit
 from tqdm import tqdm
 import time
+import sys
+import os
 
-df_close = pd.read_csv('data/russell/PRC_russell.csv', index_col=[0])
-df_open = pd.read_csv('data/russell/OPENPRC_russell.csv', index_col=[0])
+sys.path.append("./")
+path_data = './data/russell/'
+path_result = 'result/'
+os.makedirs(path_result, exist_ok=True)
+
+k = int(sys.argv[1])
+method_list = ['MV-P', 'MV-LS', 'MV-NLS']
+method = method_list[k]
+
+n_folds = 10
+n_lam_MV = 100
+lam_MVs = np.logspace(np.log10(1e-3), np.log10(1e2), num=n_lam_MV)[::-1]
+
+df_close = pd.read_csv(path_data+'russell2000_PRC.csv', index_col=[0])
+df_open = pd.read_csv(path_data+'russell2000_OPENPRC.csv', index_col=[0])
 df = df_close/df_open
-
 T, d = df.shape
 
 id_begin = np.where(df.index>=20050101)[0][0]
-df_hold = pd.read_csv('data/russell/RET_russell.csv', index_col=[0]) + 1
+df_hold = pd.read_csv(path_data+'russell2000_RET.csv', index_col=[0]) + 1
+df_listed = pd.read_csv(path_data+'russell2000_listed.csv', index_col=[0])
 
 id_recal = []
 id_train_begin = []
 id_codes_list = []
 id_test_end = []
 for year in range(2005,2021):
-    for month in [1,7]:#range(1,13):
+    for month in [1,7]:
         date = int('%d%02d01'%(year,month))        
         date_train = int('%d%02d01'%(year-1,month))
-        codes = np.array(df.columns)
-        # date_train = int('%d%02d01'%(year-int(month<=6),(month-7)%12+1))
-
+        codes = df_listed.columns[
+            (np.all(df_listed[
+                (df_listed.index>=int('%d%02d01'%(year-int(month==1),(month+6)%12)))&
+                (df_listed.index<=date)]==1, axis=0))]
         _df = df[codes].iloc[(df.index>=date_train)&(df.index<date)].copy()
         codes = codes[
             ~np.any(np.isnan(_df), axis=0)
-            # (~np.any(np.isnan(_df).rolling(window=21, axis=0).sum() >= 21, axis=0)) &
-            # (np.isnan(_df).rolling(window=21, axis=0).sum().iloc[-1,:] == 0)
         ]
         id_codes_list.append(
             np.array([np.where(np.array(list(df.columns))==i)[0][0] for i in codes])
             )
         id_recal.append(np.where(df.index>=date)[0][0])
         id_train_begin.append(np.where(df.index>=date_train)[0][0])
-        # id_test_end.append(np.where(df.index<int('%d%02d01'%(year+int(month==12),month%12+1)))[0][-1])
-        # id_test_end.append(np.where(df.index<int('%d%02d01'%(year+int(month==11),(month+1)%12+1)))[0][-1])
         id_test_end.append(np.where(df.index<int('%d%02d01'%(year+int(month==7),(month+6)%12)))[0][-1])
         
 
@@ -46,6 +58,7 @@ df = df.fillna(1.)
 df_hold.iloc[id_recal,:] = df.iloc[id_recal,:].copy()
 df_hold = df_hold.fillna(1.)
 test_date = np.array(df.index[id_begin:id_test_end[-1]+1])
+
 
 import numpy as np
 import pandas as pd
@@ -158,27 +171,18 @@ def fit(i, df, df_hold, method):
     print(np.nancumprod(score_test+1)[-1], np.mean(ret)/np.std(ret))
     return score_test, ws_test, time_elapsed
 
-method_list = ['MV-P', 'MV-LS', 'MV-NLS']
-
-n_folds = 10
-n_lam_MV = 100
-lam_MVs = np.logspace(np.log10(1e-3), np.log10(1e2), num=n_lam_MV)[::-1]
 
 from joblib import Parallel, delayed
 with Parallel(n_jobs=-1, verbose=100) as parallel:
-    for i in range(3):
-        method = method_list[i]
-        print(method)
-        
-        chunk = 60
-        for j in range(int(np.ceil(len(id_recal)/chunk))):
-            out = parallel(delayed(fit)(k, df, df_hold, method) for k in range(j*chunk, np.minimum((j+1)*chunk,len(id_recal))))
-            score_test_list, ws_test_list, time_elapsed = zip(*out)
-            score_test_list = np.concatenate(score_test_list, axis=0)
-            ws_test_list = np.concatenate(ws_test_list, axis=0)
-            time_elapsed = np.array(time_elapsed)
+    # for i in range(3):
+    #     method = method_list[i]
+    print(method)
 
-            np.savez('result/res_russell_%s_%d.npz'%(method,j), 
-                    score_test_list=score_test_list, ws_test_list=ws_test_list, test_date=test_date, times=time_elapsed)
-            ret = np.log(score_test_list+1)
-            print(np.nancumprod(score_test_list+1)[-1], np.mean(ret)/np.std(ret))
+    out = parallel(delayed(fit)(i, df, df_hold, method) for i in range(len(id_recal)))        
+    score_test_list, ws_test_list, time_elapsed = zip(*out)
+    score_test_list = np.concatenate(score_test_list, axis=0)
+    ws_test_list = np.concatenate(ws_test_list, axis=0)
+    time_elapsed = np.array(time_elapsed)
+
+    np.savez(path_result+'res_russell_%s.npz'%(method), 
+            score_test_list=score_test_list, ws_test_list=ws_test_list, test_date=test_date, times=time_elapsed)
