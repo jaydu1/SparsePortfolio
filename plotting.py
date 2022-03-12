@@ -14,7 +14,7 @@ import seaborn as sns
 
 # In[5]:
 
-
+os.makedirs('./img', exist_ok=True)
 style = 'seaborn'
 palette = sns.color_palette('deep')
 
