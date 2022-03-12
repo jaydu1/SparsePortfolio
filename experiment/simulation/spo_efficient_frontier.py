@@ -4,8 +4,10 @@ from spo import spo_l1_path, spo_nw_min
 import sys
 import os
 import time
-import sys
 sys.path.append("./")
+
+path_result = 'result/'
+os.makedirs(path_result, exist_ok=True)
 
 df = pd.read_csv('data/nyse/NYSE.csv', index_col=[0])
 X = df.values

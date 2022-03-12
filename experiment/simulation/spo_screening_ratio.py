@@ -7,7 +7,10 @@ import numba as nb
 from tqdm import tqdm
 import time 
 import sys
+import os
 sys.path.append("./")
+path_result = 'result/'
+os.makedirs(path_result, exist_ok=True)
 
 from spo.utils import np_type_f, np_type_i, nb_type_f, nb_type_i, FUNC_LOG, FUNC_EXP
 from spo.objective import Objective

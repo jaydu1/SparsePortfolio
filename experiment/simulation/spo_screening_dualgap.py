@@ -5,7 +5,11 @@ import numpy as np
 import time
 from tqdm import tqdm
 import sys
+import os
 sys.path.append("./")
+
+path_result = 'result/'
+os.makedirs(path_result, exist_ok=True)
 
 df = pd.read_csv('data/nyse/NYSE.csv', index_col=[0])
 X = df.values
