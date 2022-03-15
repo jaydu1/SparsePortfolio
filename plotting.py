@@ -19,124 +19,11 @@ style = 'seaborn'
 palette = sns.color_palette('deep')
 
 
-# # Data Inspection
-
-n_days_train = 120
-n_days_hold = 63
-
-df_close = pd.read_csv('data/sp/sp500_PRC.csv', index_col=[0])
-df_open = pd.read_csv('data/sp/sp500_OPENPRC.csv', index_col=[0])
-df = df_close/df_open
-
-T, d = df.shape
-
-id_begin = np.where(df.index>=20110101)[0][0]
-df_hold = pd.read_csv('data/sp/sp500_RET.csv', index_col=[0]) + 1
-id_recal = np.arange(id_begin, len(df.index), n_days_hold)
-df_hold.iloc[id_recal,:] = df.iloc[id_recal,:].copy()
-df_sp500 = df_hold.copy()
-
-
-path_data = './data/russell/'
-
-df_close = pd.read_csv(path_data+'russell2000_PRC.csv', index_col=[0])
-df_open = pd.read_csv(path_data+'russell2000_OPENPRC.csv', index_col=[0])
-df = df_close/df_open
-T, d = df.shape
-
-id_begin = np.where(df.index>=20050101)[0][0]
-df_hold = pd.read_csv(path_data+'russell2000_RET.csv', index_col=[0]) + 1
-df_listed = pd.read_csv(path_data+'russell2000_listed.csv', index_col=[0])
-
-id_recal = []
-id_train_begin = []
-id_codes_list = []
-id_test_end = []
-for year in range(2005,2021):
-    for month in [1,7]:
-        date = int('%d%02d01'%(year,month))        
-        date_train = int('%d%02d01'%(year-1,month))
-        codes = df_listed.columns[
-            (np.all(df_listed[
-                (df_listed.index>=int('%d%02d01'%(year-int(month==1),(month+6)%12)))&
-                (df_listed.index<=date)]==1, axis=0))]
-        _df = df[codes].iloc[(df.index>=date_train)&(df.index<date)].copy()
-        codes = codes[
-            ~np.any(np.isnan(_df), axis=0)
-        ]
-        id_codes_list.append(
-            np.array([np.where(np.array(list(df.columns))==i)[0][0] for i in codes])
-            )
-        id_recal.append(np.where(df.index>=date)[0][0])
-        id_train_begin.append(np.where(df.index>=date_train)[0][0])
-        id_test_end.append(np.where(df.index<int('%d%02d01'%(year+int(month==7),(month+6)%12)))[0][-1])
-        
-
-n_recal = len(id_recal)
-df_hold.iloc[id_recal,:] = df.iloc[id_recal,:].copy()
-df_russell2000 = df_hold.copy()
-
-
-corr_sp500 = df_sp500.corr(method='pearson')
-corr_russell2000 = df_russell2000.corr(method='pearson')
-
-
-
-fig, axes = plt.subplots(1, 2, figsize=(23,10))
-# fig.tight_layout()
-fig.subplots_adjust(right=0.9)
-cbar_ax = fig.add_axes([0.95, 0.15, 0.02, 0.7])
-
-sns.heatmap(corr_sp500, cmap='RdYlGn', vmax=1.0, vmin=-0.5, ax=axes[0],
-                cbar=True, cbar_ax=cbar_ax)
-
-sns.heatmap(corr_russell2000, cmap='RdYlGn', vmax=1.0, vmin=-0.5, ax=axes[1],
-                 cbar=False, cbar_ax=None)
-
-# plt.yticks(rotation=0) 
-# plt.xticks(rotation=90) 
-axes[0].set_xticks([])
-axes[1].set_xticks([])
-axes[0].set_yticks([])
-axes[1].set_yticks([])
-# axes[0].set_xlabel('(a)', fontsize=24)
-# axes[1].set_xlabel('(b)', fontsize=24)
-
-cbar = axes[0].collections[0].colorbar
-cbar.ax.tick_params(labelsize=20)
-
-plt.savefig('img/cor.png', dpi=1200, bbox_inches='tight', pad_inches=0)
-plt.show()
-
-
-style = 'seaborn'
-palette = sns.color_palette('deep')
-plt.style.use(style)
-sns.set(font_scale = 2)
-
-_df = pd.DataFrame(df_sp500.std())
-_df['Data'] = 'S&P 500'
-
-_df2 = pd.DataFrame(df_russell2000.std())
-_df2['Data'] = 'Russell 2000'
-
-df_std = pd.concat([_df,_df2]).reset_index(drop=True)
-df_std.columns = ['Standard Deviation', 'Data']
-
-fig, ax = plt.subplots(1, 1, figsize=(23,10))
-sns.histplot(df_std, stat='proportion', kde=False, ax=ax, 
-             x='Standard Deviation', hue='Data', common_norm=False)
-ax.set_ylabel('Empirical Proportion')
-ax.patch.set_alpha(0.5)
-# ax.set_xlabel('(c)')
-ax.set_xlim([-0.0, 0.3])
-
-plt.savefig('img/std.png', dpi=1200, bbox_inches='tight', pad_inches=0)
-sns.set(font_scale = 1)
-
-
-# # Single Crossing
-
+########################################################################
+#
+#  Single Crossing
+#
+########################################################################
 
 import scipy.stats as ss
 
@@ -177,7 +64,11 @@ for i in range(3):
 plt.savefig('img/single_crossing.png', dpi=1200, bbox_inches='tight', pad_inches=0.05)
 
 
-# # NYSE
+########################################################################
+#
+#  NYSE
+#
+########################################################################
 
 df = pd.read_csv('data/nyse/NYSE.csv', index_col=[0])
 X = df.values
@@ -390,7 +281,134 @@ for i in range(3):
 plt.savefig('img/simulation_screen_time.png', dpi=1200, bbox_inches='tight', pad_inches=0)
 
 
-# # SP500
+########################################################################
+#
+#  Figure 1
+#
+########################################################################
+
+n_days_train = 120
+n_days_hold = 63
+
+df_close = pd.read_csv('data/sp/sp500_PRC.csv', index_col=[0])
+df_open = pd.read_csv('data/sp/sp500_OPENPRC.csv', index_col=[0])
+df = df_close/df_open
+
+T, d = df.shape
+
+id_begin = np.where(df.index>=20110101)[0][0]
+df_hold = pd.read_csv('data/sp/sp500_RET.csv', index_col=[0]) + 1
+id_recal = np.arange(id_begin, len(df.index), n_days_hold)
+df_hold.iloc[id_recal,:] = df.iloc[id_recal,:].copy()
+df_sp500 = df_hold.copy()
+
+
+path_data = './data/russell/'
+
+df_close = pd.read_csv(path_data+'russell2000_PRC.csv', index_col=[0])
+df_open = pd.read_csv(path_data+'russell2000_OPENPRC.csv', index_col=[0])
+df = df_close/df_open
+T, d = df.shape
+
+id_begin = np.where(df.index>=20050101)[0][0]
+df_hold = pd.read_csv(path_data+'russell2000_RET.csv', index_col=[0]) + 1
+df_listed = pd.read_csv(path_data+'russell2000_listed.csv', index_col=[0])
+
+id_recal = []
+id_train_begin = []
+id_codes_list = []
+id_test_end = []
+for year in range(2005,2021):
+    for month in [1,7]:
+        date = int('%d%02d01'%(year,month))        
+        date_train = int('%d%02d01'%(year-1,month))
+        codes = df_listed.columns[
+            (np.all(df_listed[
+                (df_listed.index>=int('%d%02d01'%(year-int(month==1),(month+6)%12)))&
+                (df_listed.index<=date)]==1, axis=0))]
+        _df = df[codes].iloc[(df.index>=date_train)&(df.index<date)].copy()
+        codes = codes[
+            ~np.any(np.isnan(_df), axis=0)
+        ]
+        id_codes_list.append(
+            np.array([np.where(np.array(list(df.columns))==i)[0][0] for i in codes])
+            )
+        id_recal.append(np.where(df.index>=date)[0][0])
+        id_train_begin.append(np.where(df.index>=date_train)[0][0])
+        id_test_end.append(np.where(df.index<int('%d%02d01'%(year+int(month==7),(month+6)%12)))[0][-1])
+        
+
+n_recal = len(id_recal)
+df_hold.iloc[id_recal,:] = df.iloc[id_recal,:].copy()
+df_russell2000 = df_hold.copy()
+
+
+corr_sp500 = df_sp500.corr(method='pearson')
+corr_russell2000 = df_russell2000.corr(method='pearson')
+
+
+
+fig, axes = plt.subplots(1, 2, figsize=(23,10))
+# fig.tight_layout()
+fig.subplots_adjust(right=0.9)
+cbar_ax = fig.add_axes([0.95, 0.15, 0.02, 0.7])
+
+sns.heatmap(corr_sp500, cmap='RdYlGn', vmax=1.0, vmin=-0.5, ax=axes[0],
+                cbar=True, cbar_ax=cbar_ax)
+
+sns.heatmap(corr_russell2000, cmap='RdYlGn', vmax=1.0, vmin=-0.5, ax=axes[1],
+                 cbar=False, cbar_ax=None)
+
+# plt.yticks(rotation=0) 
+# plt.xticks(rotation=90) 
+axes[0].set_xticks([])
+axes[1].set_xticks([])
+axes[0].set_yticks([])
+axes[1].set_yticks([])
+# axes[0].set_xlabel('(a)', fontsize=24)
+# axes[1].set_xlabel('(b)', fontsize=24)
+
+cbar = axes[0].collections[0].colorbar
+cbar.ax.tick_params(labelsize=20)
+
+plt.savefig('img/cor.png', dpi=1200, bbox_inches='tight', pad_inches=0)
+plt.show()
+
+
+style = 'seaborn'
+palette = sns.color_palette('deep')
+plt.style.use(style)
+sns.set(font_scale = 2)
+
+_df = pd.DataFrame(df_sp500.std())
+_df['Data'] = 'S&P 500'
+
+_df2 = pd.DataFrame(df_russell2000.std())
+_df2['Data'] = 'Russell 2000'
+
+df_std = pd.concat([_df,_df2]).reset_index(drop=True)
+df_std.columns = ['Standard Deviation', 'Data']
+
+fig, ax = plt.subplots(1, 1, figsize=(23,10))
+sns.histplot(df_std, stat='proportion', kde=False, ax=ax, 
+             x='Standard Deviation', hue='Data', common_norm=False)
+ax.set_ylabel('Empirical Proportion')
+ax.patch.set_alpha(0.5)
+# ax.set_xlabel('(c)')
+ax.set_xlim([-0.0, 0.3])
+
+plt.savefig('img/std.png', dpi=1200, bbox_inches='tight', pad_inches=0)
+sns.set(font_scale = 1)
+
+
+
+
+
+########################################################################
+#
+#  S&P 500
+#
+########################################################################
 
 import empyrical as ep
 import matplotlib
@@ -717,8 +735,11 @@ plt.savefig('img/sp500_n.png', dpi=1200, bbox_inches='tight', pad_inches=0)
 
 
 
-
-# # Russell 2000
+########################################################################
+#
+#  Russell 2000
+#
+########################################################################
 path_data = './data/russell/'
 
 df_close = pd.read_csv(path_data+'russell2000_PRC.csv', index_col=[0])
